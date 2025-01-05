@@ -120,22 +120,50 @@ app.get('/logout', (req, res) => {
   });
 });
 
-// Ruta: Buscar productos (protegida)
+// Ruta: Buscar productos
 app.get('/products', isAuthenticated, async (req, res) => {
-  const category = req.query.category || '';
-  const query = `SELECT * FROM products WHERE category = ? AND released = 1;`;
+  const category = req.query.category || ''; // Obtener categoría desde los parámetros de la URL
+
+  // Consulta vulnerable sin parametrización (inseguro)
+  let query = `SELECT * FROM products WHERE released = 1`;
+
+  // Concatenamos la categoría directamente (esto es vulnerable a inyección SQL)
+  if (category) {
+    query += ` AND category = '${category}'`; // Inyección SQL posible aquí
+  }
 
   try {
-    const results = await queryDB(query, [category]);
-    res.send(`
-      <h2>Products</h2>
-      <pre>${JSON.stringify(results, null, 2)}</pre>
-      <a href="/logout">Logout</a>
-    `);
+    db.query(query, (err, results) => {
+      if (err) {
+        res.send(`Error: ${err.message}`);
+        return;
+      }
+
+      // Respuesta HTML mostrando los productos de la categoría seleccionada
+      res.send(`
+        <h2>Productos</h2>
+        <form method="get" action="/products">
+          <label for="category">Selecciona una categoría:</label>
+          <select name="category" id="category">
+            <option value="">Todos</option>
+            <option value="Tops" ${category === 'Tops' ? 'selected' : ''}>Tops</option>
+            <option value="Camisetas" ${category === 'Camisetas' ? 'selected' : ''}>Camisetas</option>
+            <option value="Pantalones" ${category === 'Pantalones' ? 'selected' : ''}>Pantalones</option>
+            <option value="Gorros" ${category === 'Gorros' ? 'selected' : ''}>Gorros</option>
+          </select>
+          <button type="submit">Buscar</button>
+        </form>
+        
+        <h3>Resultados para la categoría: ${category || 'Todos'}</h3>
+        <pre>${JSON.stringify(results, null, 2)}</pre>
+        <a href="/logout">Logout</a>
+      `);
+    });
   } catch (err) {
     res.send(`Error: ${err.message}`);
   }
 });
+
 
 // Iniciar el servidor
 app.listen(port, () => {
