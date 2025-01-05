@@ -19,7 +19,6 @@ app.use(
   })
 );
 
-// Conexión a la base de datos
 const db = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
@@ -28,7 +27,6 @@ const db = mysql.createPool({
     port: process.env.DB_PORT,
 });
 
-// Función para consultar la base de datos
 const queryDB = (query, params = []) => {
   return new Promise((resolve, reject) => {
     db.execute(query, params, (err, results) => {
@@ -38,7 +36,6 @@ const queryDB = (query, params = []) => {
   });
 };
 
-// Middleware para proteger rutas
 const isAuthenticated = (req, res, next) => {
   if (req.session.user) {
     next();
@@ -47,12 +44,10 @@ const isAuthenticated = (req, res, next) => {
   }
 };
 
-// Ruta: Página de login (predeterminada)
 app.get('/', (req, res) => {
   res.redirect('/login');
 });
 
-// Ruta: Página de login
 app.get('/login', (req, res) => {
   res.send(`
     <h2>Login</h2>
@@ -78,7 +73,7 @@ app.post('/login', async (req, res) => {
       req.session.user = results[0];
       res.redirect('/products');
     } else {
-      res.send('Invalid credentials. <a href="/login">Try again</a>');
+      res.send('Datos incorrectos. <a href="/login">Volver al inicio</a>');
     }
   } catch (err) {
     res.send(`Error: ${err.message}`);
@@ -90,11 +85,9 @@ app.post('/login', async (req, res) => {
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
   
-    // Consulta insegura que concatena directamente los valores proporcionados por el usuario
     const query = `SELECT username FROM users WHERE username = '${username}' AND password = '${password}';`;
   
     try {
-      // Ejecuta la consulta
       db.query(query, (err, results) => {
         if (err) {
           res.send(`Error: ${err.message}`);
@@ -102,10 +95,10 @@ app.post('/login', async (req, res) => {
         }
   
         if (results.length > 0) {
-          req.session.user = results[0]; // Guardar el usuario en la sesión
+          req.session.user = results[0];
           res.redirect('/products');
         } else {
-          res.send('Invalid credentials. <a href="/login">Try again</a>');
+          res.send('Datos incorrectos. <a href="/login">Volver al inicio</a>');
         }
       });
     } catch (err) {
@@ -113,23 +106,19 @@ app.post('/login', async (req, res) => {
     }
   });
 
-// Ruta: Logout
 app.get('/logout', (req, res) => {
   req.session.destroy(() => {
     res.redirect('/login');
   });
 });
 
-// Ruta: Buscar productos
 app.get('/products', isAuthenticated, async (req, res) => {
-  const category = req.query.category || ''; // Obtener categoría desde los parámetros de la URL
+  const category = req.query.category || '';
 
-  // Consulta vulnerable sin parametrización (inseguro)
   let query = `SELECT * FROM products WHERE released = 1`;
 
-  // Concatenamos la categoría directamente (esto es vulnerable a inyección SQL)
   if (category) {
-    query += ` AND category = '${category}'`; // Inyección SQL posible aquí
+    query += ` AND category = '${category}'`;
   }
 
   try {
@@ -139,7 +128,6 @@ app.get('/products', isAuthenticated, async (req, res) => {
         return;
       }
 
-      // Respuesta HTML mostrando los productos de la categoría seleccionada
       res.send(`
         <h2>Productos</h2>
         <form method="get" action="/products">
@@ -156,6 +144,7 @@ app.get('/products', isAuthenticated, async (req, res) => {
         
         <h3>Resultados para la categoría: ${category || 'Todos'}</h3>
         <pre>${JSON.stringify(results, null, 2)}</pre>
+        <a href="/terminos">Términos y condiciones</a></br>
         <a href="/logout">Logout</a>
       `);
     });
@@ -164,8 +153,22 @@ app.get('/products', isAuthenticated, async (req, res) => {
   }
 });
 
+app.get('/terminos', (req, res) => {
+  res.send(`
+    <h2>Aceptar Términos y Condiciones</h2>
+    <p>Por favor, lea nuestros términos y condiciones.</p>
+    <form action="/aceptar-terminos" method="POST">
+      <button type="submit">Aceptar términos</button>
+    </form>
+  `);
+});
 
-// Iniciar el servidor
+app.post('/aceptar-terminos', (req, res) => {
+  res.cookie('TrackingId', 'CookieAceptada', { httpOnly: true, secure: false, maxAge: 24 * 60 * 60 * 1000 });
+
+  res.redirect('/products'); 
+});
+
 app.listen(port, () => {
   console.log(`App running on http://localhost:${port}`);
 });
