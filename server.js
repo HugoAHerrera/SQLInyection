@@ -76,7 +76,7 @@ const queryDB = (query, params = []) => {
   });
 };
 
-/* Forma correcta
+/* 
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
   const query = `SELECT username, password FROM users WHERE username = ? AND password = ?;`;
@@ -96,7 +96,6 @@ app.post('/login', async (req, res) => {
 });
 */
 
-// Forma incorrecta
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
   
@@ -110,7 +109,6 @@ app.post('/login', async (req, res) => {
         }
   
         if (results.length === 0) {
-          // Verificar si el usuario existe sin validar la contraseña
           const userQuery = `SELECT username FROM users WHERE username = '${username}';`;
           db.query(userQuery, (err, userResults) => {
             if (err) {
