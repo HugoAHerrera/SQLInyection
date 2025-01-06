@@ -4,10 +4,12 @@ const mysql = require('mysql2');
 const bodyParser = require('body-parser');
 const session = require('express-session');
 const cookieParser = require('cookie-parser');
+const path = require('path');
 
 const app = express();
 const port = 3000;
 
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cookieParser());
@@ -29,15 +31,6 @@ const db = mysql.createPool({
     port: process.env.DB_PORT,
 });
 
-const queryDB = (query, params = []) => {
-  return new Promise((resolve, reject) => {
-    db.execute(query, params, (err, results) => {
-      if (err) return reject(err);
-      resolve(results);
-    });
-  });
-};
-
 const isAuthenticated = (req, res, next) => {
   if (req.session.user) {
     next();
@@ -52,16 +45,36 @@ app.get('/', (req, res) => {
 
 app.get('/login', (req, res) => {
   res.send(`
-    <h2>Login</h2>
-    <form action="/login" method="POST">
-      <label for="username">Username:</label>
-      <input type="text" id="username" name="username" required><br>
-      <label for="password">Password:</label>
-      <input type="password" id="password" name="password" required><br>
-      <button type="submit">Login</button>
-    </form>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <link rel="stylesheet" href="/styles.css">
+      <title>Login</title>
+    </head>
+    <body>
+      <h2>Login</h2>
+      <form action="/login" method="POST">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required>
+        <button type="submit">Login</button>
+      </form>
+    </body>
+    </html>
   `);
 });
+
+const queryDB = (query, params = []) => {
+  return new Promise((resolve, reject) => {
+    db.execute(query, params, (err, results) => {
+      if (err) return reject(err);
+      resolve(results);
+    });
+  });
+};
 
 /* Forma correcta
 app.post('/login', async (req, res) => {
@@ -131,23 +144,51 @@ app.get('/products', isAuthenticated, async (req, res) => {
       }
 
       res.send(`
-        <h2>Productos</h2>
-        <form method="get" action="/products">
-          <label for="category">Selecciona una categoría:</label>
-          <select name="category" id="category">
-            <option value="">Todos</option>
-            <option value="Tops" ${category === 'Tops' ? 'selected' : ''}>Tops</option>
-            <option value="Camisetas" ${category === 'Camisetas' ? 'selected' : ''}>Camisetas</option>
-            <option value="Pantalones" ${category === 'Pantalones' ? 'selected' : ''}>Pantalones</option>
-            <option value="Gorros" ${category === 'Gorros' ? 'selected' : ''}>Gorros</option>
-          </select>
-          <button type="submit">Buscar</button>
-        </form>
-        
-        <h3>Resultados para la categoría: ${category || 'Todos'}</h3>
-        <pre>${JSON.stringify(results, null, 2)}</pre>
-        <a href="/sesiones">Logs usuario</a></br>
-        <a href="/logout">Logout</a>
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <link rel="stylesheet" href="/styles.css">
+          <title>Products</title>
+          <style>
+            .centered-content {
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              text-align: center;
+              padding: 20px;
+              border: 1px solid #ccc;
+              border-radius: 10px;
+              margin-top: 20px;
+              width: 80%;
+              margin-left: auto;
+              margin-right: auto;
+            }
+          </style>
+        </head>
+        <body>
+          <h2>Productos</h2>
+          <form method="get" action="/products">
+            <label for="category">Selecciona una categoría:</label>
+            <select name="category" id="category">
+              <option value="">Todos</option>
+              <option value="Tops" ${category === 'Tops' ? 'selected' : ''}>Tops</option>
+              <option value="Camisetas" ${category === 'Camisetas' ? 'selected' : ''}>Camisetas</option>
+              <option value="Pantalones" ${category === 'Pantalones' ? 'selected' : ''}>Pantalones</option>
+              <option value="Gorros" ${category === 'Gorros' ? 'selected' : ''}>Gorros</option>
+            </select>
+            <button type="submit">Buscar</button>
+          </form>
+          <div class="centered-content">
+          <h3>Resultados para la categoría: ${category || 'Todos'}</h3>
+          <pre>${JSON.stringify(results, null, 2)}</pre>
+          <a href="/sesiones">Logs usuario</a></br>
+          <a href="/logout">Logout</a>
+          </div>
+        </body>
+        </html>
       `);
     });
   } catch (err) {
@@ -157,10 +198,21 @@ app.get('/products', isAuthenticated, async (req, res) => {
 
 app.get('/sesiones', (req, res) => {
   res.send(`
-    <h2>¿Aceptar ver sus inicios de sesión?</h2>
-    <form action="/mis-logs" method="POST">
-      <button type="submit">Ver logs</button>
-    </form>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <link rel="stylesheet" href="/styles.css">
+      <title>Sesiones</title>
+    </head>
+    <body>
+      <h2>¿Aceptas ver los inicios de sesión?</h2>
+      <form action="/mis-logs" method="POST">
+        <button type="submit">Ver logs</button>
+      </form>
+    </body>
+    </html>
   `);
 });
 
@@ -179,9 +231,38 @@ app.post('/mis-logs', (req, res) => {
     }
 
     res.send(`
-      <h2>Logs usuario</h2>
-      <pre>${JSON.stringify(results, null, 2)}</pre>
-      <a href="/logout">Logout</a>
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="/styles.css">
+        <title>Logs Usuario</title>
+        <style>
+            .centered-content {
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+              text-align: center;
+              padding: 20px;
+              border: 1px solid #ccc;
+              border-radius: 10px;
+              margin-top: 20px;
+              width: 80%;
+              margin-left: auto;
+              margin-right: auto;
+            }
+          </style>
+      </head>
+      <body>
+        <h2>Logs de sessión del usuario</h2>
+        <div class="centered-content">
+        <pre>${JSON.stringify(results, null, 2)}</pre>
+        <a href="/logout">Logout</a>
+        </div>
+      </body>
+      </html>
     `);
   });
 });
