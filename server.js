@@ -3,12 +3,14 @@ const express = require('express');
 const mysql = require('mysql2');
 const bodyParser = require('body-parser');
 const session = require('express-session');
+const cookieParser = require('cookie-parser');
 
 const app = express();
 const port = 3000;
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+app.use(cookieParser());
 
 app.use(
   session({
@@ -144,7 +146,7 @@ app.get('/products', isAuthenticated, async (req, res) => {
         
         <h3>Resultados para la categoría: ${category || 'Todos'}</h3>
         <pre>${JSON.stringify(results, null, 2)}</pre>
-        <a href="/terminos">Términos y condiciones</a></br>
+        <a href="/sesiones">Logs usuario</a></br>
         <a href="/logout">Logout</a>
       `);
     });
@@ -153,21 +155,37 @@ app.get('/products', isAuthenticated, async (req, res) => {
   }
 });
 
-app.get('/terminos', (req, res) => {
+app.get('/sesiones', (req, res) => {
   res.send(`
-    <h2>Aceptar Términos y Condiciones</h2>
-    <p>Por favor, lea nuestros términos y condiciones.</p>
-    <form action="/aceptar-terminos" method="POST">
-      <button type="submit">Aceptar términos</button>
+    <h2>¿Aceptar ver sus inicios de sesión?</h2>
+    <form action="/mis-logs" method="POST">
+      <button type="submit">Ver logs</button>
     </form>
   `);
 });
 
-app.post('/aceptar-terminos', (req, res) => {
-  res.cookie('TrackingId', 'CookieAceptada', { httpOnly: true, secure: false, maxAge: 24 * 60 * 60 * 1000 });
+app.post('/mis-logs', (req, res) => {
+  const sessionId = '1234567';
+  res.cookie('IdSession', sessionId, { httpOnly: true, secure: false, maxAge: 24 * 60 * 60 * 1000 });
 
-  res.redirect('/products'); 
+  const idSession = req.cookies.IdSession || sessionId;
+
+  const query = `SELECT * FROM sessions WHERE IdSession = '${idSession}'`;
+
+  db.query(query, (err, results) => {
+    if (err) {
+      res.status(500).send(`SQL Error: ${err.message}`);
+      return;
+    }
+
+    res.send(`
+      <h2>Logs usuario</h2>
+      <pre>${JSON.stringify(results, null, 2)}</pre>
+      <a href="/logout">Logout</a>
+    `);
+  });
 });
+
 
 app.listen(port, () => {
   console.log(`App running on http://localhost:${port}`);
