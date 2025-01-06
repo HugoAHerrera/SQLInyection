@@ -79,7 +79,7 @@ const queryDB = (query, params = []) => {
 /* Forma correcta
 app.post('/login', async (req, res) => {
   const { username, password } = req.body;
-  const query = `SELECT username FROM users WHERE username = ? AND password = ?;`;
+  const query = `SELECT username, password FROM users WHERE username = ? AND password = ?;`;
 
   try {
     const results = await queryDB(query, [username, password]);
@@ -100,7 +100,7 @@ app.post('/login', async (req, res) => {
 app.post('/login', async (req, res) => {
     const { username, password } = req.body;
   
-    const query = `SELECT username FROM users WHERE username = '${username}' AND password = '${password}';`;
+    const query = `SELECT username, password FROM users WHERE username = '${username}' AND password = '${password}';`;
   
     try {
       db.query(query, (err, results) => {
@@ -109,11 +109,24 @@ app.post('/login', async (req, res) => {
           return;
         }
   
-        if (results.length > 0) {
+        if (results.length === 0) {
+          // Verificar si el usuario existe sin validar la contraseña
+          const userQuery = `SELECT username FROM users WHERE username = '${username}';`;
+          db.query(userQuery, (err, userResults) => {
+            if (err) {
+              res.send(`Error: ${err.message}`);
+              return;
+            }
+  
+            if (userResults.length === 0) {
+              res.send('Usuario inexistente. <a href="/login">Volver al inicio</a>');
+            } else {
+              res.send('Contraseña incorrecta. <a href="/login">Volver al inicio</a>');
+            }
+          });
+        } else {
           req.session.user = results[0];
           res.redirect('/products');
-        } else {
-          res.send('Datos incorrectos. <a href="/login">Volver al inicio</a>');
         }
       });
     } catch (err) {
