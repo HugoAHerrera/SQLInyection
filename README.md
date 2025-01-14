@@ -1,10 +1,10 @@
 # Proyecto sobre Inyección SQL - SPD
 
 ## 🚀 Pasos para la instalación y configuración
-### 1. Instalar dependencias
-- Ejecuta el siguiente comando en el terminal dentro de la raíz del proyecto: npm install
+### 1. Instalar dependencias:
+- Ejecutar el siguiente comando en el terminal dentro de la raíz del proyecto: npm install
 
-### 2. Configurar la base de datos
+### 2. Configurar la base de datos:
 - Crea una base de datos MySQL en Azure
 - Configura un archivo .env en la raíz del proyecto con los valores necesarios
 - Schema de la base de datos:
